@@ -1,0 +1,26 @@
+---
+- name: '{{ ansible_name_module }} | file:state=directory | Ensure Archive directory exist '
+  file:
+    path: "{{ dir_bundle_location }}"
+    state: directory
+    recurse: true
+
+- name: '{{ ansible_name_module }} | Mirror image registry | oc:adm:release:mirror'
+  command: >
+    oc adm release mirror \
+    -a {{ ocp_registry_pull_secret_file }} \
+     --from={{ ocp_release_image_registry}}/{{ ocp_release_image_repository }}:{{ocp_release_version }}-{{ ocp_release_arch }} \
+     --to-dir={{ dir_bundle_location }} \
+     --insecure=true
+  register: catalog_mirrored
+
+- name: '{{ ansible_name_module }} | archive:xz | create artifactory image bundle '
+  become: yes
+  command: >
+    tar -cvf {{ dir_bundle_location }}/{{ bundle_file_name | d('artifactory-bundle.tar.xz') }} \
+     -C {{ dir_bundle_location }} .
+  args:
+    creates: "{{ dir_bundle_location }}/{{ bundle_file_name | d('artifactory-bundle.tar.xz') }}"
+    warn: false
+    chdir: "{{ dir_bundle_location }}/"
+
