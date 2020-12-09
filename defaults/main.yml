@@ -7,3 +7,11 @@ ocp_release_image_repository: 'openshift-release-dev/ocp-release'
 ocp_release_version: '4.6.4'
 local_repository: 'openshift4'
 release_image_repository: 'openshift-release-dev'
+registry_container_name: 'mirror-registry'
+registry_container_image: 'docker.io/library/registry:2'
+registry_container_dir: '/var/lib/registry'
+operator_registres_to_mirror:
+  redhat-operators:
+    source: 'registry.redhat.io/redhat/redhat-operator-index:v4.6'
+    container_port: 50051
+    mirrored_operator_list: "3scale-operator,apicast-operator,amq-streams,businessautomation-operator,cluster-kube-descheduler-operator,cluster-logging,clusterresourceoverride,codeready-workspaces,compliance-operator,container-security-operator,elasticsearch-operator,file-integrity-operator,jaeger-product,kiali-ossm,kubevirt-hyperconverged,local-storage-operator,metering-ocp,nfd,ocs-operator,ptp-operator,rhsso-operator,serverless-operator,servicemeshoperator,sriov-network-operator"

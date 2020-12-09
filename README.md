@@ -33,6 +33,20 @@ registry_host_fqdn: FQDN of the Artofactory registry. Note that this should not 
 local_repository: Name of the local repository mirrored images are pushed into (e.g. openshift4)
 release_image_repository: Name of the sub repository mirrored images are pushed into (e.g. openshift-release-dev)
 
+For the operator bundle tasks( reusing some of the variable from the images bundle above to keep minimal list of variables):
+registry_container_name: The name of the container registry to use to mirror operators related contenti (e.g. mirror-registry).
+registry_container_dir: The name of the directory structure on the controller host that will be mounted into the registry container to save the container image layers and blobs.
+registry_container_image: The name of the registry container to run (e.g. docker.io/library/registry:2).
+operator_registres_to_mirror: The various operators that will be mirrored (e.g.redhat-operators, community-operators, redhat-certified-operators...). This is a dictionary with keys like source, container_port, and mirrored_operartor_list where :
+  - source is the FQDN of the registry and repository and version of the registry index being used to mirror the operator content (e.g. registry.redhat.io/redhat/redhat-operator-index:v4.6)
+  - container_port is the name of the port on the controller to bind the container to (e.g. 50051). It has to be different for each operator index container.
+  - mirrored_operator_list is the list of operators to be mirrored if pruning operators to provided comma separated list (e.g. '3scale-operator,apicast-operator').
+opm_client_binary: The path to the opm client binary to be used to mirror operators if not already installed on the controller. 
+grpcurl_binary: The path to the grpcurl client binary to be used to prune operators if pruning a subset of operators. 
+install_grpcurl: The boolean used to toggle the grpcurl binary install if not already install on host.
+install_opm: The boolean used to toggle the opm binary install if not already install on host.
+
+For the operator unbundle tasks( reusing some of the variable from the images unbundle above to keep minimal list of variables):
 
 
 Dependencies
@@ -59,6 +73,24 @@ To push the bundle content into the Artifactory registry use the sample play bel
            import_role:
              name: mirror-ocp4-content-for-artifactory
              tasks_from: unbundle-ocp-images.yml
+             
+To create the operator bundle for Artifactory use the sample play below:
+
+    - hosts: localhost
+      tasks:
+         - name: Create operator bundle for artifactory
+           import_role:
+             name: mirror-ocp4-content-for-artifactory
+             tasks_from: bundle-operators.yml
+             
+To push the operator bundle content into the Artifactory registry use the sample play below:
+
+    - hosts: localhost
+      tasks:
+         - name: Push operator bundle content into artifactory
+           import_role:
+             name: mirror-ocp4-content-for-artifactory
+             tasks_from: unbundle-operators.yml
              
 
 License
