@@ -1,0 +1,69 @@
+---
+- name: '{{ ansible_name_module }} | yum | install required packages '
+  yum:
+    name:
+      - tar 
+      - podman
+      - jq
+      - lzma
+      - python-backports-lzma
+      - xz-devel
+    state: present
+
+- name: '{{ ansible_name_module }} | file:directory | Ensure the operator images staging directory exist'
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0755
+  loop:
+    - "{{ dir_bundle_staging }}"
+
+- name: '{{ ansible_name_module }} | unarchive:xz | original operator bundle on registry '
+  unarchive:
+    src: "{{ bundle_file_location }}"
+    remote_src: yes
+    dest: "{{ dir_bundle_staging }}"
+    mode: 0755
+  register: op_unbundle_out
+
+- name: '{{ ansible_name_module }} | set_fact | registry image files load facts '
+  set_fact:
+    local_registry_dir: "{{ op_unbundle_out.results[0].invocation.module_args.dest }}/docker/registry/v2"
+  when:
+    - op_unbundle_out is defined
+    - not op_unbundle_out.failed | d(false) | bool
+
+- name: '{{ ansible_name_module }} | command | generate authfile for registry'
+  command: > 
+    podman login -u {{ registry_admin_username }} -p {{ registry_admin_password }} \
+       --authfile {{ hostvars[inventory_hostname].ansible_env.HOME }}/.docker/config.json \
+       {{ registry_host_fqdn }}
+  register: authfile_created
+
+- name: '{{ ansible_name_module }} | set_fact |  authfile for registry'
+  set_fact:
+    registry_auth_config: "{{ hostvars[inventory_hostname].ansible_env.HOME }}/.docker/config.json"
+  when:
+    - authfile_created is defined
+
+- name: '{{ ansible_name_module }} | command:oc adm | load images to registry '
+  command: > 
+    oc image mirror \
+       -a {{ registry_auth_config }} \
+       --from-dir={{ local_registry_dir }} \
+       file://openshift/release:{{ ocp_release_version }}* \
+       {{ registry_host_fqdn }}/{{ local_repository }} \
+  when:
+    - authfile_created is defined
+  register: registry_loaded
+
+- name: '{{ ansible_name_module }} | file:absent | bundles staging directories'
+  file:
+    state: absent 
+    path: "{{ item }}"
+  with_items: 
+    - "{{ dir_bundle_staging }}"
+  when:
+    - registry_loaded is defined
+    - registry_loaded.changed | bool
+    - not registry_loaded.failed | bool
