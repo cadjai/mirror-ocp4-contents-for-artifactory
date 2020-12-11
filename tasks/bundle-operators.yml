@@ -1,6 +1,9 @@
 ---
 - name: '{{ ansible_name_module }} | podman:login | Login to quay container registry'
-  command: podman login --authfile {{ ocp_registry_pull_secret_file }} 
+  command: > 
+     podman login -u {{ default_operator_registry_username }} \
+     -p {{ default_operator_registry_password }} \
+      {{ default_operator_registry }} 
 
 - name: '{{ ansible_name_module }} | podman:run | Start registry container '
   command: podman run -d --name {{ registry_container_name }} \
