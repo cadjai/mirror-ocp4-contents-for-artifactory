@@ -27,6 +27,7 @@
   register: unbundle_out
 
 - name: '{{ ansible_name_module }} | command | generate authfile for registry'
+  no_log: true
   command: > 
     podman login -u {{ registry_admin_username }} -p {{ registry_admin_password }} \
        --authfile {{ hostvars[inventory_hostname].ansible_env.HOME }}/.docker/config.json \

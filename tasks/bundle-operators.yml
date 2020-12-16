@@ -1,5 +1,6 @@
 ---
 - name: '{{ ansible_name_module }} | podman:login | Login to quay container registry'
+  no_log: true
   command: > 
      podman login -u {{ default_operator_registry_username }} \
      -p {{ default_operator_registry_password }} \
@@ -168,6 +169,7 @@
 - name: '{{ ansible_name_module }} | Mirror operator catalog | local registry '
   block:
     - name: '{{ ansible_name_module }} | Mirror operator catalog | login to registries'
+      no_log: true
       command: podman login {{ item.value.source }}
       with_dict:
         - "{{ operator_registres_to_mirror }}"

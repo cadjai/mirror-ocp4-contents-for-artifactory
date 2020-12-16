@@ -28,12 +28,13 @@
 
 - name: '{{ ansible_name_module }} | set_fact | registry image files load facts '
   set_fact:
-    local_registry_dir: "{{ op_unbundle_out.results[0].invocation.module_args.dest }}/docker/registry/v2"
+    local_registry_dir: "{{ dir_bundle_staging }}/docker/registry/v2"
   when:
     - op_unbundle_out is defined
     - not op_unbundle_out.failed | d(false) | bool
 
 - name: '{{ ansible_name_module }} | command | generate authfile for registry'
+  no_log: true
   command: > 
     podman login -u {{ registry_admin_username }} -p {{ registry_admin_password }} \
        --authfile {{ hostvars[inventory_hostname].ansible_env.HOME }}/.docker/config.json \
