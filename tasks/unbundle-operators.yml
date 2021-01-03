@@ -29,9 +29,29 @@
 - name: '{{ ansible_name_module }} | set_fact | registry image files load facts '
   set_fact:
     local_registry_dir: "{{ dir_bundle_staging }}/docker/registry/v2"
+
+- name: '{{ ansible_name_module }} | command:podman:load | load'
+  command: podman load -i {{ dir_bundle_staging }}/container-registry-image.tar
+  register: registry_container_loaded
+
+- name: '{{ ansible_name_module }} | set_fact | Set loaded registry container image name '
+  set_fact:
+    temp_container_registry_image: "{{ registry_container_loaded.stdout.split(' ')[2] }}"
   when:
-    - op_unbundle_out is defined
-    - not op_unbundle_out.failed | d(false) | bool
+    - registry_container_loaded is defined
+    - registry_container_loaded.rc == 0
+    - not registry_container_loaded.failed | bool
+    - registry_container_loaded is defined
+    - registry_container_loaded.stdout != ""
+
+- name: '{{ ansible_name_module }} | podman:run | Start registry container '
+  command: >
+    podman run -d --name {{ registry_container_name }} \
+    -p 5000:5000 -v {{ dir_bundle_staging }}:/var/lib/registry:z \
+    {{ temp_container_registry_image }}
+  when:
+    - temp_container_registry_image is defined
+    - temp_container_registry_image != ""
 
 - name: '{{ ansible_name_module }} | command | generate authfile for registry'
   no_log: true
@@ -41,30 +61,72 @@
        {{ registry_host_fqdn }}
   register: authfile_created
 
+- name: '{{ ansible_name_module }} | stat | check if source secret is included in bundle'
+  stat:
+    path: "{{ dir_bundle_staging }}/source-operators-pull-secret.json"
+  register: source_pullsecret_check
+
+- name: '{{ ansible_name_module }} | set_fact |  operator_registry_pull_secret_file if undefined'
+  set_fact:
+    operator_registry_pull_secret_file: "{{ dir_bundle_staging }}/source-operators-pull-secret.json"
+  when:
+    - not operator_registry_pull_secret_file is defined or (operator_registry_pull_secret_file == "")
+    - source_pullsecret_check.stat.exists
+
 - name: '{{ ansible_name_module }} | set_fact |  authfile for registry'
   set_fact:
     registry_auth_config: "{{ hostvars[inventory_hostname].ansible_env.HOME }}/.docker/config.json"
   when:
     - authfile_created is defined
 
+- name: '{{ ansible_name_module }} | jq | generate combined authfile for registry'
+  shell: >
+    jq -c --argjson \
+      var "$(jq .auths {{ registry_auth_config }})" \
+      '.auths += $var' {{ operator_registry_pull_secret_file }} \
+      | jq '.' > {{ dir_bundle_staging }}/operators-registry.json
+
+
+- name: '{{ ansible_name_module }} | Process repositories'
+  block:
+    - name: '{{ ansible_name_module }} | curl | _catalog?n=2000 '
+      shell: >
+        curl -v http://localhost:5000/v2/_catalog?n=1000 | jq .repositories
+      register: registry_repositories
+
+    - name: Get all tags
+      shell: >
+        curl -v http://localhost:5000/v2/'{{ item }}'/tags/list | jq .tags
+      args:
+        warn: false
+      loop: "{{ registry_repositories.stdout }}"
+      register: registry_tags
+
 - name: '{{ ansible_name_module }} | command:oc adm | load images to registry '
   command: > 
     oc image mirror \
-       -a {{ registry_auth_config }} \
+       -a {{ dir_bundle_staging }}/operators-registry.json \
        --from-dir={{ local_registry_dir }} \
-       file://openshift/release:{{ ocp_release_version }}* \
+       file://{{ item }}:* \
        {{ registry_host_fqdn }}/{{ local_repository }} \
+  with_items:
+    - "{{ registry_repositories.stdout }}"
   when:
     - authfile_created is defined
   register: registry_loaded
 
-- name: '{{ ansible_name_module }} | file:absent | bundles staging directories'
-  file:
-    state: absent 
-    path: "{{ item }}"
-  with_items: 
-    - "{{ dir_bundle_staging }}"
+- name: '{{ ansible_name_module }} | Cleanup staging resources'
   when:
     - registry_loaded is defined
     - registry_loaded.changed | bool
     - not registry_loaded.failed | bool
+  block:
+    - name: '{{ ansible_name_module }} | podman:rm | Remove mirror-registry '
+      command: podman rm -f {{ registry_container_name | d('mirror-registry') }}
+    
+    - name: '{{ ansible_name_module }} | file:absent | bundles staging directories'
+      file:
+        state: absent 
+        path: "{{ item }}"
+      with_items: 
+        - "{{ dir_bundle_staging }}"
