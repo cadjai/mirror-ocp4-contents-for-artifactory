@@ -94,14 +94,6 @@
         curl -v http://localhost:5000/v2/_catalog?n=1000 | jq .repositories
       register: registry_repositories
 
-    - name: Get all tags
-      shell: >
-        curl -v http://localhost:5000/v2/'{{ item }}'/tags/list | jq .tags
-      args:
-        warn: false
-      loop: "{{ registry_repositories.stdout }}"
-      register: registry_tags
-
 - name: '{{ ansible_name_module }} | command:oc image mirror | load images to registry '
   command: > 
     oc image mirror \
@@ -120,7 +112,6 @@
   when:
     - registry_loaded is defined
     - registry_loaded.changed | bool
-    - not registry_loaded.failed | bool
   block:
     - name: '{{ ansible_name_module }} | podman:rm | Remove mirror-registry '
       command: podman rm -f {{ registry_container_name | d('mirror-registry') }}
