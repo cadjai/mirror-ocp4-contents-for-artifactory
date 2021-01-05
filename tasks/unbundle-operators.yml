@@ -5,8 +5,8 @@
       - tar 
       - podman
       - jq
-      - lzma
-      - python-backports-lzma
+      #- lzma
+      #- python-backports-lzma
       - xz-devel
     state: present
 
@@ -102,13 +102,14 @@
       loop: "{{ registry_repositories.stdout }}"
       register: registry_tags
 
-- name: '{{ ansible_name_module }} | command:oc adm | load images to registry '
+- name: '{{ ansible_name_module }} | command:oc image mirror | load images to registry '
   command: > 
     oc image mirror \
        -a {{ dir_bundle_staging }}/operators-registry.json \
-       --from-dir={{ local_registry_dir }} \
-       file://{{ item }}:* \
-       {{ registry_host_fqdn }}/{{ local_repository }} \
+        localhost:5000/{{ item }}:* \
+        {{ registry_host_fqdn }}/{{ local_repository }}/{{ item }} \
+        {{ registry_host_fqdn }}/{{ local_repository }} \
+        --insecure=true --loglevel=8
   with_items:
     - "{{ registry_repositories.stdout }}"
   when:
