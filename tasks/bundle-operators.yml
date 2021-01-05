@@ -188,7 +188,7 @@
       register: registries_login
 
     - name: '{{ ansible_name_module }} | file:absent | ensure merged authfile for registries absent'
-fi
+      file:
         path: "{{ dir_bundle_staging }}/operators-registry.json"
         state: absent
 
@@ -196,10 +196,8 @@ fi
       shell: >
         jq -c --argjson \
            var "$(jq .auths {{ hostvars[inventory_hostname].ansible_env.HOME }}/.docker/oprconfig-{{ item.key }}.json)" \
-
-       '.auths += $var' {{ default_operator_registry_auth_config }} \
-
-       | jq '.' >> {{ dir_bundle_staging }}/operators-registry.json
+            '.auths += $var' {{ default_operator_registry_auth_config }} \
+            | jq '.' >> {{ dir_bundle_staging }}/operators-registry.json
       with_dict:
         - "{{ operator_registres_to_mirror }}"
       when:
