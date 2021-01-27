@@ -25,12 +25,13 @@
 
 - name: '{{ ansible_name_module }} | podman:run | Start operator-index container '
   command: podman run -d --name operator_collector_{{ item.key  }} \
-    -p {{ item.value.container_port }}:{{ item.value.container_port }}  {{ item.value.source }}
+    -p {{ item.value.host_port }}:{{ item.value.container_port }}  {{ item.value.source }}
   with_dict:
     - "{{ operator_registres_to_mirror }}"
   when:
     - item.key is defined and item.key != ""
     - item.value.source is defined and item.value.source != ""
+    - item.value.host_port is defined and item.value.host_port|int > 0
     - item.value.container_port is defined and item.value.container_port|int > 0
 
 ### adding extra timeout here to wait for all containers to come up and be bound
@@ -120,12 +121,13 @@
 
 - name: '{{ ansible_name_module }} | Create Package index '
   shell: >
-    grpcurl -plaintext localhost:{{ item.value.container_port }} api.Registry/ListPackages \
+    grpcurl -plaintext localhost:{{ item.value.host_port }} api.Registry/ListPackages \
     > {{ dir_bundle_location | d('/tmp') }}/packages-{{ item.key }}.out
   with_dict:
     - "{{ operator_registres_to_mirror }}"
   when:
     - item.key is defined and item.key != ""
+    - item.value.host_port is defined and item.value.host_port|int > 0
     - item.value.container_port is defined and item.value.container_port|int > 0
   register: pkg_idx_out
 
@@ -266,6 +268,7 @@
   when:
     - item.key is defined and item.key != ""
     - item.value.source is defined and item.value.source != ""
+    - item.value.host_port is defined and item.value.host_port|int > 0
     - item.value.container_port is defined and item.value.container_port|int > 0
 
 - name: '{{ ansible_name_module }} | podman:rm | Remove mirror-registry '
