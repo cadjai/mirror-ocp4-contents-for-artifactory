@@ -180,7 +180,7 @@
       command: >
         podman login -u {{ default_operator_registry_username }} \
           -p {{ default_operator_registry_password }} \
-          --authfile {{ hostvars[inventory_hostname].ansible_env.HOME }}/.docker/oprconfig-{{ item.key }}.json \
+          --authfile {{ hostvars[inventory_hostname].ansible_env.HOME }}/.docker/oprconfig.json \
           {{ item.value.source }}
       with_dict:
         - "{{ operator_registres_to_mirror }}"
@@ -194,27 +194,11 @@
         path: "{{ dir_bundle_staging }}/operators-registry.json"
         state: absent
 
-    - name: '{{ ansible_name_module }} | jq |  generate merged authfile for registries'
-      shell: >
-        jq -c --argjson \
-           var "$(jq .auths {{ hostvars[inventory_hostname].ansible_env.HOME }}/.docker/oprconfig-{{ item.key }}.json)" \
-            '.auths += $var' {{ default_operator_registry_auth_config }} \
-            | jq '.' >> {{ dir_bundle_staging }}/operators-registry.json
-      with_dict:
-        - "{{ operator_registres_to_mirror }}"
-      when:
-        - item.key is defined and item.key != ""
-        - item.value.source is defined and item.value.source != ""
-
-    - name: '{{ ansible_name_module }} | set_fact |  authfile for operator registries'
-      set_fact:
-        operators_registries_auth_config: "{{ dir_bundle_staging }}/operators-registry.json"
-
     - name: '{{ ansible_name_module }} | Mirror operator catalog | oc:adm:catalog:mirror'
       command: >
         oc adm catalog mirror localhost:5000/{{ item.value.source.split('/')[1] }}/{{ item.value.source.split('/')[2] }} \
          localhost:5000 \
-        -a {{ operators_registries_auth_config }} \
+        -a {{ default_operator_registry_auth_config }} \
          --filter-by-os="linux/amd64" \
          --insecure=true
       with_dict:
