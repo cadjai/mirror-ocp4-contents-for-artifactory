@@ -34,13 +34,6 @@
     - item.value.host_port is defined and item.value.host_port|int > 0
     - item.value.container_port is defined and item.value.container_port|int > 0
 
-### adding extra timeout here to wait for all containers to come up and be bound
-- name: '{{ ansible_name_module }} | command | wait for all containers to be created'
-  wait_for:
-    timeout: "{{ (operator_registres_to_mirror | length) * 5 }}"
-  delegate_to: localhost
-
-
 - name: '{{ ansible_name_module }} | copy | opm client to bastion'
   when:
     - install_opm is defined
