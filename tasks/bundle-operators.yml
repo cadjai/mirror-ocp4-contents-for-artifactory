@@ -226,7 +226,7 @@
         localhost:5000/{{ registry_container_image.split('/')[1] }}/{{ registry_container_image.split('/')[2] }}
 
 - name: '{{ ansible_name_module }} | command: cp | copy manifest files '
-  command: cp -r {{ (item.value.source.split('/')[2]).split(':')[0] }} {{ registry_container_dir }}/  
+  command: cp -r {{ (item.value.source.split('/')[2]).split(':')[0] }}-manifests {{ registry_container_dir }}/  
   with_dict:
     - "{{ operator_registres_to_mirror }}"
   when:
