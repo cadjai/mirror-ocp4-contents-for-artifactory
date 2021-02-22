@@ -79,14 +79,6 @@
   when:
     - authfile_created is defined
 
-- name: '{{ ansible_name_module }} | jq | generate combined authfile for registry'
-  shell: >
-    jq -c --argjson \
-      var "$(jq .auths {{ registry_auth_config }})" \
-      '.auths += $var' {{ operator_registry_pull_secret_file }} \
-      | jq '.' > {{ dir_bundle_staging }}/operators-registry.json
-
-
 - name: '{{ ansible_name_module }} | Process repositories'
   block:
     - name: '{{ ansible_name_module }} | curl | _catalog?n=2000 '
@@ -97,11 +89,12 @@
 - name: '{{ ansible_name_module }} | command:oc image mirror | load images to registry '
   command: > 
     oc image mirror \
-       -a {{ dir_bundle_staging }}/operators-registry.json \
+      -a {{ hostvars[inventory_hostname].ansible_env.HOME }}/.docker/config.json \
         localhost:5000/{{ item }}:* \
-        {{ registry_host_fqdn }}/{{ local_repository }}/{{ item }} \
-        {{ registry_host_fqdn }}/{{ local_repository }} \
-        --insecure=true --loglevel=8
+       {{ registry_host_fqdn }}/{{ local_repository }}/{{ item }} \
+         --keep-manifest-list=true \
+         --filter-by-os=/* \
+         --insecure=true --loglevel=8
   with_items:
     - "{{ registry_repositories.stdout }}"
   when:
