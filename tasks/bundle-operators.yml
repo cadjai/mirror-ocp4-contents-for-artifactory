@@ -30,6 +30,7 @@
     - "{{ operator_registres_to_mirror }}"
   when:
     - item.key is defined and item.key != ""
+    - item.value.mirror is defined and item.value.mirror | bool == true
     - item.value.source is defined and item.value.source != ""
     - item.value.host_port is defined and item.value.host_port|int > 0
     - item.value.container_port is defined and item.value.container_port|int > 0
@@ -120,6 +121,7 @@
     - "{{ operator_registres_to_mirror }}"
   when:
     - item.key is defined and item.key != ""
+    - item.value.mirror is defined and item.value.mirror | bool == true
     - item.value.host_port is defined and item.value.host_port|int > 0
     - item.value.container_port is defined and item.value.container_port|int > 0
   register: pkg_idx_out
@@ -136,6 +138,7 @@
         - "{{ operator_registres_to_mirror }}"
       when:
         - item.key is defined and item.key != ""
+        - item.value.mirror is defined and item.value.mirror | bool == true
         - item.value.source is defined and item.value.source != ""
         - item.value.mirrored_operator_list is defined and item.value.mirrored_operator_list != ""
 
@@ -146,14 +149,15 @@
         - "{{ operator_registres_to_mirror }}"
       when:
         - item.key is defined and item.key != ""
+        - item.value.mirror is defined and item.value.mirror | bool == true
         - item.value.source is defined and item.value.source != ""
         - item.value.mirrored_operator_list is defined and item.value.mirrored_operator_list != ""
 
 - name: '{{ ansible_name_module }} | push original operator index image bundle '
   block:
-    - name: '{{ ansible_name_module }} | Mirror operator catalog | oc:adm:catalog:mirror'
+    - name: '{{ ansible_name_module }} | Mirror operator catalog | {{ openshift_client_binary }}:image:mirror'
       command: >
-        oc image mirror  \
+        {{ openshift_client_binary }} image mirror  \
         -a {{ default_operator_registry_auth_config }} \
         {{ item.value.source }} \
         localhost:5000/{{ item.value.source.split('/')[1] }}/{{ item.value.source.split('/')[2] }} \
@@ -162,6 +166,7 @@
         - "{{ operator_registres_to_mirror }}"
       when:
         - item.key is defined and item.key != ""
+        - item.value.mirror is defined and item.value.mirror | bool == true
         - item.value.source is defined and item.value.source != ""
         - not item.value.mirrored_operator_list is defined or item.value.mirrored_operator_list == ""
       register: catalog_mirrored
@@ -179,6 +184,7 @@
         - "{{ operator_registres_to_mirror }}"
       when:
         - item.key is defined and item.key != ""
+        - item.value.mirror is defined and item.value.mirror | bool == true
         - item.value.source is defined and item.value.source != ""
       register: registries_login
 
@@ -187,19 +193,29 @@
         path: "{{ dir_bundle_staging }}/operators-registry.json"
         state: absent
 
-    - name: '{{ ansible_name_module }} | Mirror operator catalog | oc:adm:catalog:mirror'
+    - name: '{{ ansible_name_module }} | Mirror operator catalog | {{ openshift_client_binary }}:adm:catalog:mirror'
       command: >
-        oc adm catalog mirror localhost:5000/{{ item.value.source.split('/')[1] }}/{{ item.value.source.split('/')[2] }} \
+        {{ openshift_client_binary }} adm catalog mirror localhost:5000/{{ item.value.source.split('/')[1] }}/{{ item.value.source.split('/')[2] }} \
          localhost:5000 \
-        -a {{ default_operator_registry_auth_config }} \
-         --filter-by-os="linux/amd64" \
+         -a {{ default_operator_registry_auth_config }} \
+         --icsp-scope='repository' \
+         --index-filter-by-os=".*" \
          --insecure=true
       with_dict:
         - "{{ operator_registres_to_mirror }}"
       when:
         - item.key is defined and item.key != ""
+        - item.value.mirror is defined and item.value.mirror | bool == true
         - item.value.source is defined and item.value.source != ""
       register: catalog_mirrored
+
+    - name: '{{ ansible_name_module }} | Mirror operator catalog | set_fact:manifest_folder'
+      set_fact:
+        manifest_dirs: "{{ manifest_dirs | d([]) + [(item.stdout_lines[-1].split(' ')[-1])] }}"
+      with_items: "{{ catalog_mirrored.results }}"
+      when:
+        - item.stdout_lines is defined
+      register: manifest_dir_facts_out
 
 - name: '{{ ansible_name_module }} | mirror registry container '
   block:
@@ -219,12 +235,8 @@
         localhost:5000/{{ registry_container_image.split('/')[1] }}/{{ registry_container_image.split('/')[2] }}
 
 - name: '{{ ansible_name_module }} | command: cp | copy manifest files '
-  command: cp -r {{ (item.value.source.split('/')[2]).split(':')[0] }}-manifests {{ registry_container_dir }}/  
-  with_dict:
-    - "{{ operator_registres_to_mirror }}"
-  when:
-    - item.key is defined and item.key != ""
-    - item.value.source is defined and item.value.source != ""
+  command: cp -r {{ (item }} {{ registry_container_dir }}/  
+  loop: "{{ manifest_dirs }}"
   register: catalog_mirrored
 
 - name: '{{ ansible_name_module }} | archive:xz | create operator image bundle '
@@ -244,6 +256,7 @@
     - "{{ operator_registres_to_mirror }}"
   when:
     - item.key is defined and item.key != ""
+    - item.value.mirror is defined and item.value.mirror | bool == true
     - item.value.source is defined and item.value.source != ""
     - item.value.host_port is defined and item.value.host_port|int > 0
     - item.value.container_port is defined and item.value.container_port|int > 0
