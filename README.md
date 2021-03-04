@@ -62,7 +62,7 @@ To create the bundle for Artifactory use the sample play below:
       tasks:
          - name: Create bundle for artifactory
            import_role:
-             name: mirror-ocp4-content-for-artifactory
+             name: mirror-ocp4-contents-for-artifactory
              tasks_from: bundle-ocp-images.yml
              
 To push the bundle content into the Artifactory registry use the sample play below:
@@ -71,7 +71,7 @@ To push the bundle content into the Artifactory registry use the sample play bel
       tasks:
          - name: Push bundle content into artifactory
            import_role:
-             name: mirror-ocp4-content-for-artifactory
+             name: mirror-ocp4-contents-for-artifactory
              tasks_from: unbundle-ocp-images.yml
              
 To create the operator bundle for Artifactory use the sample play below:
@@ -80,7 +80,7 @@ To create the operator bundle for Artifactory use the sample play below:
       tasks:
          - name: Create operator bundle for artifactory
            import_role:
-             name: mirror-ocp4-content-for-artifactory
+             name: mirror-ocp4-contents-for-artifactory
              tasks_from: bundle-operators.yml
              
 To push the operator bundle content into the Artifactory registry use the sample play below:
@@ -89,7 +89,7 @@ To push the operator bundle content into the Artifactory registry use the sample
       tasks:
          - name: Push operator bundle content into artifactory
            import_role:
-             name: mirror-ocp4-content-for-artifactory
+             name: mirror-ocp4-contents-for-artifactory
              tasks_from: unbundle-operators.yml
              
 
