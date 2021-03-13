@@ -1,13 +1,24 @@
 ---
+- name: Check that oc client is installed with right version
+  command: "{{ openshift_client_binary }} version"
+  ignore_errors: yes
+  register: oc_client_installed
+
+- name: '{{ ansible_name_module }} | assert | ensure client is present'
+  assert:
+    that:
+      - oc_client_installed.rc == 0
+      - " not 'command not found' in oc_client_installed.stderr "
+    msg: "Ensure the OC client is installed with the version required on controller"
+
 - name: '{{ ansible_name_module }} | yum | install required packages '
   yum:
     name:
       - tar 
       - podman
-      - jq
-      - lzma
-      - python-backports-lzma
-      - xz-devel
+      #- lzma
+      #- python-backports-lzma
+      #- xz-devel
     state: present
 
 - name: '{{ ansible_name_module }} | file:directory | Ensure the images staging directory exist'
@@ -18,27 +29,51 @@
   loop:
     - "{{ dir_bundle_staging }}"
 
+- name: '{{ ansible_name_module }} | set registry port if required '
+  set_fact:
+    registry_port: "{{ ':' + reg_port if reg_port is defined and reg_port | int > 0 else '' }}"
+
 - name: '{{ ansible_name_module }} | unarchive:xz | bundle '
   unarchive:
     src: "{{ bundle_file_location }}"
     remote_src: yes
     dest: "{{ dir_bundle_staging }}"
     mode: 0755
+  when:
+    - unpack is defined
+    - unpack | bool
   register: unbundle_out
 
 - name: '{{ ansible_name_module }} | command | generate authfile for registry'
+       #--authfile {{ hostvars[inventory_hostname].ansible_env.HOME }}/.docker/config.json \
   no_log: true
   command: > 
     podman login -u {{ registry_admin_username }} -p {{ registry_admin_password }} \
-       --authfile {{ hostvars[inventory_hostname].ansible_env.HOME }}/.docker/config.json \
-       {{ registry_host_fqdn }}
+       --authfile {{ dir_bundle_staging }}/config.json \
+       {{ registry_host_fqdn }}{{ registry_port }}
   register: authfile_created
 
 - name: '{{ ansible_name_module }} | set_fact |  authfile for registry'
+    #registry_auth_config: "{{ hostvars[inventory_hostname].ansible_env.HOME }}/.docker/config.json"
   set_fact:
-    registry_auth_config: "{{ hostvars[inventory_hostname].ansible_env.HOME }}/.docker/config.json"
+    registry_auth_config: "{{ dir_bundle_staging }}/config.json"
   when:
     - authfile_created is defined
+
+- name: Print auth config
+  debug:
+    var: registry_auth_config
+
+- name: '{{ ansible_name_module }} | file | set permission on authfile'
+  when:
+    - authfile_created is defined
+  block:      
+    - name: Set file permissions
+      file:
+        path: "{{ registry_auth_config }}"
+        owner: "{{ lookup('env', 'USER') }}" 
+        group: "{{ lookup('env', 'USER') }}"
+        mode: '0644'
 
 - name: '{{ ansible_name_module }} | command:oc adm | load images to registry '
   command: > 
@@ -46,7 +81,7 @@
        -a {{ registry_auth_config }} \
        --from-dir={{ dir_bundle_staging }} \
        file://openshift/release:{{ ocp_release_version }}* \
-       {{ registry_host_fqdn }}/{{ local_repository }}/{{ release_image_repository }} --loglevel=8
+       {{ registry_host_fqdn }}{{ registry_port }}/{{ local_repository }}/{{ release_image_repository }} --loglevel=8
   when:
     - authfile_created is defined
   register: registry_loaded
