@@ -45,7 +45,6 @@
   register: unbundle_out
 
 - name: '{{ ansible_name_module }} | command | generate authfile for registry'
-       #--authfile {{ hostvars[inventory_hostname].ansible_env.HOME }}/.docker/config.json \
   no_log: true
   command: > 
     podman login -u {{ registry_admin_username }} -p {{ registry_admin_password }} \
@@ -54,15 +53,10 @@
   register: authfile_created
 
 - name: '{{ ansible_name_module }} | set_fact |  authfile for registry'
-    #registry_auth_config: "{{ hostvars[inventory_hostname].ansible_env.HOME }}/.docker/config.json"
   set_fact:
     registry_auth_config: "{{ dir_bundle_staging }}/config.json"
   when:
     - authfile_created is defined
-
-- name: Print auth config
-  debug:
-    var: registry_auth_config
 
 - name: '{{ ansible_name_module }} | file | set permission on authfile'
   when:
