@@ -32,6 +32,7 @@
 - name: '{{ ansible_name_module }} | set registry port if required '
   set_fact:
     registry_port: "{{ ':' + reg_port if reg_port is defined and reg_port | int > 0 else '' }}"
+    release_repo: "{{ '/' + release_image_repository if release_image_repository and release_image_repository != '' else '' }}"
 
 - name: '{{ ansible_name_module }} | unarchive:xz | bundle '
   unarchive:
@@ -74,7 +75,7 @@
        -a {{ registry_auth_config }} \
        --from-dir={{ dir_bundle_staging }} \
        file://openshift/release:{{ ocp_release_version }}* \
-       {{ registry_host_fqdn }}{{ registry_port }}/{{ local_repository }}/{{ release_image_repository }} --loglevel=8
+       {{ registry_host_fqdn }}{{ registry_port }}/{{ local_repository }}{{ release_repo }} --loglevel=8
   when:
     - authfile_created is defined
   register: registry_loaded
