@@ -23,4 +23,5 @@
     creates: "{{ dir_bundle_location }}/{{ bundle_file_name | d('artifactory-bundle.tar.xz') }}"
     warn: false
     chdir: "{{ dir_bundle_location }}/"
-
+  when:
+    - skip_bundle is undefined or not skip_bundle | bool

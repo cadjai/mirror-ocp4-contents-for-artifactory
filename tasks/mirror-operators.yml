@@ -249,6 +249,8 @@
     creates: "{{ dir_bundle_location }}/{{ bundle_file_name }}"
     warn: false
     chdir: "{{ registry_container_dir }}/"
+  when:
+    - skip_bundle is undefined or not skip_bundle | bool
 
 - name: '{{ ansible_name_module }} | podman:rm | Remove operator-index container '
   command: podman rm -f operator_collector_{{ item.key }} 
@@ -263,3 +265,5 @@
 
 - name: '{{ ansible_name_module }} | podman:rm | Remove mirror-registry '
   command: podman rm -f {{ registry_container_name | d('mirror-registry') }} 
+  when:
+    - skip_bundle is undefined or not skip_bundle | bool

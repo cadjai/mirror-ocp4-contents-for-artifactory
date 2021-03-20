@@ -24,6 +24,8 @@
     remote_src: yes
     dest: "{{ dir_bundle_staging }}"
     mode: 0755
+  when:
+    - skip_bundle is undefined or not skip_bundle | bool
   register: op_unbundle_out
 
 - name: '{{ ansible_name_module }} | set_fact | registry image files load facts '
@@ -32,6 +34,8 @@
 
 - name: '{{ ansible_name_module }} | command:podman:load | load'
   command: podman load -i {{ dir_bundle_staging }}/container-registry-image.tar
+  when:
+    - skip_bundle is undefined or not skip_bundle | bool
   register: registry_container_loaded
 
 - name: '{{ ansible_name_module }} | set_fact | Set loaded registry container image name '

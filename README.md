@@ -15,7 +15,7 @@ Any pre-requisites that may not be covered by Ansible itself or the role should 
 Role Variables
 --------------
 
-For the bundle tasks:
+For the mirror and bundle tasks:
 - ansible_name_module: The name of the module this role is part of. This is used to track context when this role is run in a playbook as part of other plays.
 - dir_bundle_location: Location of the bundle on the host the role/playbook is run against.
 - bundle_file_name: Name of the xz format compressed artifact bundle file (e.g. artifactory-bundle.tar.xz)
@@ -25,7 +25,7 @@ For the bundle tasks:
 - ocp_release_version: Release version being mirrored (e.g. 4.6.4)
 - ocp_release_arch: Release architecture for the images being mirrored (e.g. x86_64)
 
-For the unbundle tasks:
+For the unbundle and push tasks:
 - ansible_name_module: The name of the module this role is part of. This is used to track context when this role is run in a playbook as part of other plays.
 - bundle_file_location: Fully qualified location of the xz format compressed bundle on the controller or host the role/playbook is run against.
 - dir_bundle_staging: Name of the staging diretory the compressed bundle will be uncompressed in and used for the container registry if needed.
@@ -67,7 +67,7 @@ To create the bundle for Artifactory or any v2.2 registry use the sample play be
          - name: Create bundle for artifactory
            import_role:
              name: mirror-ocp4-contents-for-artifactory
-             tasks_from: bundle-ocp-images.yml
+             tasks_from: mirror-ocp-images.yml
              
 To push the bundle content into the Artifactory registry or any v2.2 registry use the sample play below:
 
@@ -76,7 +76,7 @@ To push the bundle content into the Artifactory registry or any v2.2 registry us
          - name: Push bundle content into artifactory
            import_role:
              name: mirror-ocp4-contents-for-artifactory
-             tasks_from: unbundle-ocp-images.yml
+             tasks_from: push-ocp-images.yml
              
 To create the operator bundle for Artifactory use the sample play below:
 
@@ -85,7 +85,7 @@ To create the operator bundle for Artifactory use the sample play below:
          - name: Create operator bundle for artifactory
            import_role:
              name: mirror-ocp4-contents-for-artifactory
-             tasks_from: bundle-operators.yml
+             tasks_from: mirror-operators.yml
              
 To push the operator bundle content into the Artifactory registry use the sample play below:
 
@@ -94,7 +94,7 @@ To push the operator bundle content into the Artifactory registry use the sample
          - name: Push operator bundle content into artifactory
            import_role:
              name: mirror-ocp4-contents-for-artifactory
-             tasks_from: unbundle-operators.yml
+             tasks_from: push-operators.yml
            vars:
              unpack: "true"
              
@@ -105,7 +105,7 @@ To push the operator bundle content into a v2.2 registry use the sample play bel
          - name: Push operator bundle content into artifactory
            import_role:
              name: mirror-ocp4-contents-for-artifactory
-             tasks_from: unbundle-operators.yml
+             tasks_from: push-operators.yml
            vars:
              reg_port: "{{ registry_host_port }}"
              unpack: "true"

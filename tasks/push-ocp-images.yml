@@ -40,8 +40,7 @@
     dest: "{{ dir_bundle_staging }}"
     mode: 0755
   when:
-    - unpack is defined
-    - unpack | bool
+    - skip_bundle is undefined or not skip_bundle | bool
   register: unbundle_out
 
 - name: '{{ ansible_name_module }} | command | generate authfile for registry'
