@@ -24,8 +24,9 @@ For the mirror and bundle tasks:
 - ocp_release_image_repository: Name of the repository being mirrored (e.g. openshift-release-dev/ocp-release)
 - ocp_release_version: Release version being mirrored (e.g. 4.6.4)
 - ocp_release_arch: Release architecture for the images being mirrored (e.g. x86_64)
+- rhcos_image_mirror_url: The URL for the specific RHCOS image to include in the bundle (default to https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/latest/latest/rhcos-4.7.7-x86_64-aws.x86_64.vmdk.gz)
 
-For the unbundle and push tasks:
+For the push tasks:
 - ansible_name_module: The name of the module this role is part of. This is used to track context when this role is run in a playbook as part of other plays.
 - bundle_file_location: Fully qualified location of the xz format compressed bundle on the controller or host the role/playbook is run against.
 - dir_bundle_staging: Name of the staging diretory the compressed bundle will be uncompressed in and used for the container registry if needed.
@@ -50,7 +51,7 @@ For the operator bundle tasks( reusing some of the variable from the images bund
 - install_grpcurl: The boolean used to toggle the grpcurl binary install if not already install on host.
 - install_opm: The boolean used to toggle the opm binary install if not already install on host.
 
-For the operator unbundle tasks( reusing some of the variable from the images unbundle above to keep minimal list of variables):
+For the operator push tasks( reusing some of the variable from the images unbundle above to keep minimal list of variables):
 
 
 Dependencies
