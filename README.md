@@ -21,7 +21,8 @@ For the mirror and bundle tasks:
 - bundle_file_name: Name of the xz format compressed artifact bundle file (e.g. artifactory-bundle.tar.xz)
 - ocp_registry_pull_secret_file: Json formatted pull secret to access the required registries .
 - ocp_release_image_registry: FQDN of the source registry content will be mirrored from (e.g. redhat.io)
-- ocp_release_image_repository: Name of the repository being mirrored (e.g. openshift-release-dev/ocp-release)
+- ocp_release_repository: Name of the repository being mirrored (e.g. openshift-release-dev/ocp-release)
+- ocp_release_image_repository: Name of the repository where the release images is being mirrored from (e.g. ocp)
 - ocp_release_version: Release version being mirrored (e.g. 4.6.4)
 - ocp_release_arch: Release architecture for the images being mirrored (e.g. x86_64)
 - rhcos_image_mirror_url: The URL for the specific RHCOS image to include in the bundle (default to https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/latest/latest/rhcos-4.7.7-x86_64-aws.x86_64.vmdk.gz)
@@ -34,7 +35,8 @@ For the push tasks:
 - registry_admin_password: Password to use to authenticate to the Artifactory destination registry.
 - registry_host_fqdn: FQDN of the Artofactory registry. Note that this should not have the port associated withthe registry.
 - local_repository: Name of the local repository mirrored images are pushed into (e.g. openshift4)
-- release_image_repository: Name of the sub repository mirrored images are pushed into (e.g. openshift-release-dev)
+- release_repository: Name of the sub repository mirrored images are pushed into (e.g. openshift-release-dev/ocp-release)
+- release_image_repository: Name of the sub repository mirrored release image is pushed into (e.g. ocp4). This is being made different from the above repository where all images are stored to make it easy to deploy the disconnected version of the OpenShift Update Service which will throw a OOMKilled error for the Graph Huilder image if Release Image and Release Content are stored in the same repository.
 - unpack: To skip unpacking if already unpacked.
 - reg_port: To be used if the registry is not artifactory and a port is needed.
 

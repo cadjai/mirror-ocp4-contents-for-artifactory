@@ -75,10 +75,22 @@
        -a {{ registry_auth_config }} \
        --from-dir={{ dir_bundle_staging }} \
        file://openshift/release:{{ ocp_release_version }}* \
-       {{ registry_host_fqdn }}{{ registry_port }}/{{ local_repository }}{{ release_repo }} --loglevel=8
+       {{ registry_host_fqdn }}{{ registry_port }}/{{ local_repository }}{{ release_repository }} --loglevel=8
   when:
     - authfile_created is defined
   register: registry_loaded
+
+ ### Mirror release image into a separate repository
+ # This make it easier to deploy the OpenShift Update Service later
+- name: '{{ ansible_name_module }} | command:oc adm | load images to registry '
+  command: > 
+    oc image mirror \
+       -a {{ registry_auth_config }} \
+       {{ registry_host_fqdn }}{{ registry_port }}/{{ local_repository }}{{ release_repository }}:{{ ocp_release_version }}-{{ ocp_release_arch }} \
+       {{ registry_host_fqdn }}{{ registry_port }}/{{ local_repository }}{{ release_image_repository }}:{{ ocp_release_version }}-{{ ocp_release_arch }}
+  when:
+    - authfile_created is defined
+  register: release_image_loaded
 
 - name: '{{ ansible_name_module }} | file:absent | bundles staging directories'
   file:
@@ -90,3 +102,4 @@
     - registry_loaded is defined
     - registry_loaded.changed | bool
     - not registry_loaded.failed | bool
+    - skip_bundle is undefined or not skip_bundle | bool
