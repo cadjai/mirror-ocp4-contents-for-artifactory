@@ -1,0 +1,14 @@
+---
+ ####################### Copy ocp image signature files to location to be pushed to the source repo 
+- name: '{{ ansible_name_module }} | file:directory | Ensure the manifest directory exist'
+  file:
+    path: "{{ artifacts_source_repo_dir | default(playbook_dir) }}/image-signatures"
+    state: directory
+    mode: 0755
+
+- name: '{{ ansible_name_module }} | copy | copy  image signature CM files '
+  copy:
+    src: "{{ dir_bundle_location }}/config/"
+    dest: "{{ artifacts_source_repo_dir | default(playbook_dir) }}/image-signatures"
+    force: yes
+
